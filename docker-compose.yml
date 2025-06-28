@@ -1,0 +1,152 @@
+services:
+  mongo:
+    image: mongo:5.0
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      # Usa el shell clásico 'mongo' con --quiet y evalúa un ping
+      test: ["CMD", "mongo", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  #scraper-selenium:
+  #build: ./scraper-selenium
+  #container_name: scraper-selenium
+  #depends_on:
+  #  - mongo
+  #environment:
+  #  - MONGO_URI=mongodb://mongo:27017
+
+  mongo-exporter:
+    build: ./mongo-exporter
+    container_name: mongo-exporter
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./data:/data
+    command: ["python", "export.py"]
+
+  mongo-express:
+    image: mongo-express:latest
+    restart: always
+    depends_on:
+      - mongo
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: "mongodb://mongo:27017/waze_db"
+      ME_CONFIG_BASICAUTH: "false"
+      ME_CONFIG_BASICAUTH_ENABLED: "false"
+
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - "3000:3000"
+    volumes:
+      - metabase-data:/metabase-data
+    environment:
+      MB_DB_FILE: /metabase-data/metabase.db
+
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+      - ./cache-service/redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+
+  #cache-service:
+  #build: ./cache-service
+  #restart: on-failure
+  #depends_on:
+  #  - mongo
+  #  - redis
+  #environment:
+  #  - MONGO_URI=mongodb://mongo:27017
+  #  - REDIS_HOST=redis
+  #  - REDIS_PORT=6379
+  #  - TTL=3600
+  #  - ARRIVAL_LAMBDA=5
+
+  #redisinsight:
+  #image: redislabs/redisinsight:latest
+  #restart: always
+  #container_name: redisinsight
+  #depends_on:
+  #  - redis
+  #ports:
+  #  - "5540:5540"
+
+  pig-filter:
+    build: ./pig-filter
+    container_name: pig-filter
+    restart: on-failure
+    depends_on:
+      mongo-exporter:
+        condition: service_started
+    volumes:
+      - ./data:/data
+
+  pig-process:
+    build: ./pig-process
+    container_name: pig-process
+    restart: on-failure
+    depends_on:
+      pig-filter:
+        condition: service_started
+    volumes:
+      - ./data:/data
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.18.3
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.18.3
+    container_name: kibana
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+
+  display-elastic:
+    build: ./display-elastic
+    container_name: display-elastic
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ./data:/data
+    command: ["python", "load_to_elasticsearch.py"]
+
+volumes:
+  mongo_data:
+  metabase-data:
+  redis-data:
+  es-data:
