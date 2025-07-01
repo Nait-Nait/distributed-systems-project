@@ -1,5 +1,3 @@
-# mongo-exporter/export.py
-
 import csv
 from pymongo import MongoClient
 from datetime import datetime
@@ -29,6 +27,7 @@ def flatten(doc):
         "tipo": doc.get("type", "").lower(),
         "subtipo": doc.get("subtype", "").lower(),
         "calle": doc.get("street", "").lower(),
+        "city": doc.get("city", "").lower(),
         "lat": doc.get("location", {}).get("y", ""), 
         "lon": doc.get("location", {}).get("x", ""), 
         "timestamp": doc.get("pubMillis", ""),
@@ -45,6 +44,7 @@ with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as csvfile:
         "tipo",
         "subtipo",
         "calle",
+        "city", 
         "lat",
         "lon",
         "timestamp",

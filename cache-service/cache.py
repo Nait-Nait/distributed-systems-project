@@ -14,7 +14,7 @@ def main():
     
     client = MongoClient(mongo_uri)
     db = client["waze_db"]
-    coll = db["events_raw"]
+    coll = db["events_selenium"]
 
     r = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
 

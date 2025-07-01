@@ -26,9 +26,8 @@ options.add_argument("--window-size=1920,1080")
 service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=service, options=options)
 
-print("🚦 Abriendo Waze...")
+print("Abriendo Waze...")
 driver.get("https://www.waze.com/es-419/live-map/")
-print("🕹️ Puedes mover el mapa. El script capturará georss automáticamente.")
 
 try:
     while True:
@@ -45,21 +44,21 @@ try:
                 nuevos = [a for a in alerts if a["uuid"] not in uuids_existentes]
 
                 if nuevos:
-                    print(f"🟢 {len(nuevos)} eventos nuevos desde: {request.url}")
+                    print(f"[EVENTOS NUEVOS] {len(nuevos)} eventos nuevos desde: {request.url}")
                     collection.insert_many(nuevos)
                     uuids_existentes.update(a["uuid"] for a in nuevos)
                 else:
-                    print(f"🔁 Solo eventos repetidos desde: {request.url}")
+                    print(f"[EVENTOS REPETIDOS] Solo eventos repetidos desde: {request.url}")
             except Exception as e:
-                print(f"⚠️ Error procesando {request.url}: {e}")
+                print(f"[ERROR] Error procesando {request.url}: {e}")
 
         driver.requests.clear() 
         time.sleep(2)
 
 except KeyboardInterrupt:
-    print("⛔ Captura interrumpida por el usuario.")
+    print("[AVISO] Captura interrumpida por el usuario.")
 finally:
     try:
         driver.quit()
     except Exception as e:
-        print(f"⚠️ Error al cerrar navegador: {e}")
+        print(f"[ERROR] Error al cerrar navegador: {e}")

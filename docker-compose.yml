@@ -7,20 +7,11 @@ services:
     ports:
       - "27017:27017"
     healthcheck:
-      # Usa el shell clásico 'mongo' con --quiet y evalúa un ping
       test: ["CMD", "mongo", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
-
-  #scraper-selenium:
-  #build: ./scraper-selenium
-  #container_name: scraper-selenium
-  #depends_on:
-  #  - mongo
-  #environment:
-  #  - MONGO_URI=mongodb://mongo:27017
 
   mongo-exporter:
     build: ./mongo-exporter
@@ -44,19 +35,6 @@ services:
       ME_CONFIG_BASICAUTH: "false"
       ME_CONFIG_BASICAUTH_ENABLED: "false"
 
-  metabase:
-    image: metabase/metabase:latest
-    container_name: metabase
-    restart: unless-stopped
-    depends_on:
-      - mongo
-    ports:
-      - "3000:3000"
-    volumes:
-      - metabase-data:/metabase-data
-    environment:
-      MB_DB_FILE: /metabase-data/metabase.db
-
   redis:
     image: redis:latest
     restart: always
@@ -67,27 +45,27 @@ services:
       - ./cache-service/redis.conf:/usr/local/etc/redis/redis.conf
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 
-  #cache-service:
-  #build: ./cache-service
-  #restart: on-failure
-  #depends_on:
-  #  - mongo
-  #  - redis
-  #environment:
-  #  - MONGO_URI=mongodb://mongo:27017
-  #  - REDIS_HOST=redis
-  #  - REDIS_PORT=6379
-  #  - TTL=3600
-  #  - ARRIVAL_LAMBDA=5
+  cache-service:
+    build: ./cache-service
+    restart: on-failure
+    depends_on:
+      - mongo
+      - redis
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TTL=3600
+      - ARRIVAL_LAMBDA=5
 
-  #redisinsight:
-  #image: redislabs/redisinsight:latest
-  #restart: always
-  #container_name: redisinsight
-  #depends_on:
-  #  - redis
-  #ports:
-  #  - "5540:5540"
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    restart: always
+    container_name: redisinsight
+    depends_on:
+      - redis
+    ports:
+      - "5540:5540"
 
   pig-filter:
     build: ./pig-filter

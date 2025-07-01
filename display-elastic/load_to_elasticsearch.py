@@ -1,8 +1,6 @@
 import csv
 import requests
-
 import time
-import requests
 
 ELASTIC_URL = "http://elasticsearch:9200"
 
@@ -19,7 +17,6 @@ else:
     print("Elasticsearch no respondió a tiempo.")
     exit(1)
 
-
 reportes = [
     {
         "csv_path": "/data/reporte_tipos.csv/part-r-00000",
@@ -35,6 +32,16 @@ reportes = [
         "csv_path": "/data/reporte_fechas.csv/part-r-00000",
         "index": "reporte_fechas",
         "field_name": "fecha",
+    },
+    {
+        "csv_path": "/data/reporte_city.csv/part-r-00000",
+        "index": "reporte_city",
+        "field_name": "city",
+    },
+    {
+        "csv_path": "/data/reporte_subtipos.csv/part-r-00000",
+        "index": "reporte_subtipos",
+        "field_name": "subtipo",
     },
 ]
 
